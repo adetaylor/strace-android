@@ -311,6 +311,25 @@
 	{ 5,	TP,	sys_waitid,		"waitid"	}, /* 280 */
 	{ 3,	TN,	sys_socket,		"socket"	}, /* 281 */
 	{ 3,	TN,	sys_bind,		"bind"		}, /* 282 */
+/* Android additions start here */
+	{ 3,	TN,	sys_socket,		"socket"	}, /* 281 */
+	{ 3,	TN,	sys_bind,		"bind"		}, /* 282 */
+	{ 3,	TN,	sys_connect,		"connect"	}, /* 283 */
+	{ 2,	TN,	sys_listen,		"listen"	}, /* 284 */
+	{ 3,	TN,	sys_accept,		"accept"	}, /* 285 */
+	{ 3,	TN,	sys_getsockname,	"getsockname"	}, /* 286 */
+	{ 3,	TN,	sys_getpeername,	"getpeername"	}, /* 287 */
+	{ 4,	TN,	sys_socketpair,		"socketpair"	}, /* 288 */
+	{ 4,	TN,	sys_send,		"send"		}, /* 289 */
+	{ 4,	TN,	sys_recv,		"recv"		}, /* 290 */
+	{ 6,	TN,	sys_sendto,		"sendto"	}, /* 291 */
+	{ 6,	TN,	sys_recvfrom,		"recvfrom"	}, /* 292 */
+	{ 2,	TN,	sys_shutdown,		"shutdown"	}, /* 293 */
+	{ 5,	TN,	sys_setsockopt,		"setsockopt"	}, /* 294 */
+	{ 5,	TN,	sys_getsockopt,		"getsockopt"	}, /* 295 */
+	{ 5,	TN,	sys_sendmsg,		"sendmsg"	}, /* 296 */
+	{ 5,	TN,	sys_recvmsg,		"recvmsg"	}, /* 297 */
+#if 0
 	{ 3,	TN,	sys_connect,		"connect"	}, /* 283 */
 	{ 2,	TN,	sys_listen,		"listen"	}, /* 284 */
 	{ 3,	TN,	sys_accept,		"accept"	}, /* 285 */
@@ -328,6 +347,7 @@
 	{ 3,	TN,	sys_recvmsg,		"recvmsg"	}, /* 297 */
 	{ 4,	TI,	sys_semop,		"semop"		}, /* 298 */
 	{ 4,	TI,	sys_semget,		"semget"	}, /* 299 */
+#endif
 	{ 4,	TI,	sys_semctl,		"semctl"	}, /* 300 */
 	{ 4,	TI,	sys_msgsnd,		"msgsnd"	}, /* 301 */
 	{ 4,	TI,	sys_msgrcv,		"msgrcv"	}, /* 302 */

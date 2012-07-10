@@ -145,3 +145,5 @@ ioctl_decode(struct tcb *tcp, long code, long arg)
  *
  * End of Registry
  */
+	case 'b':
+		return openbinder_ioctl(tcp, code, arg);
