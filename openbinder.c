@@ -103,24 +103,24 @@ int num_offsets;
 }
 
 void dump_flat_obj(flatobj)
-flat_binder_object_t* flatobj;
+struct flat_binder_object* flatobj;
 {
 	tprintf("{type=");
 	switch (flatobj->type) {
-	case kPackedLargeBinderHandleType:
-		tprintf("kPackedLargeBinderHandleType,handle=0x%ld",flatobj->handle);
+	case BINDER_TYPE_BINDER:
+		tprintf("BINDER_TYPE_BINDER,binder=0x%08x,cookie=0x%08x",(u32)flatobj->binder,(u32)flatobj->cookie);
 		break;
-	case kPackedLargeBinderType:
-		tprintf("kPackedLargeBinderType,binder=0x%08x,cookie=0x%08x",(u32)flatobj->binder,(u32)flatobj->cookie);
+	case BINDER_TYPE_WEAK_BINDER:
+		tprintf("BINDER_TYPE_WEAK_BINDER,binder=0x%08x,cookie=0x%08x",(u32)flatobj->binder,(u32)flatobj->cookie);
 		break;
-	case kPackedLargeBinderWeakHandleType:
-		tprintf("kPackedLargeBinderWeakHandleType,handle=0x%ld",flatobj->handle);
+	case BINDER_TYPE_HANDLE:
+		tprintf("BINDER_TYPE_HANDLE,handle=0x%ld",flatobj->handle);
 		break;
-	case kPackedLargeBinderWeakType:
-		tprintf("kPackedLargeBinderWeakType,binder=0x%08x,cookie=0x%08x",(u32)flatobj->binder,(u32)flatobj->cookie);
+	case BINDER_TYPE_WEAK_HANDLE:
+		tprintf("BINDER_TYPE_WEAK_HANDLE,handle=0x%ld",flatobj->handle);
 		break;
-	default:
-		tprintf("%lu,length=%lu",flatobj->type,flatobj->length);
+	case BINDER_TYPE_FD:
+		tprintf("BINDER_TYPE_FD,fd=%ld",flatobj->handle);
 		break;
 	}
 	tprintf("}");
@@ -155,9 +155,9 @@ int startfrom;
 			}
 			if (needsComma) comma();
 			tprintf("objref=");
-			dump_flat_obj((flat_binder_object_t*) currentpointer);
+			dump_flat_obj((struct flat_binder_object*) currentpointer);
 			needsComma = true;
-			currentpointer += sizeof(flat_binder_object_t);
+			currentpointer += sizeof(struct flat_binder_object);
 			currentdumpstart = currentpointer;
 		} else {
 			currentpointer++;
@@ -211,37 +211,33 @@ int offsetsdatasize;
 
 void dump_transaction_data(tcp,transaction,is_transaction)
 struct tcb *tcp;
-binder_transaction_data_t* transaction;
+struct binder_transaction_data* transaction;
 bool is_transaction;
 {
 	if (is_transaction == true)
 		tprintf("target=0x%08x,cookie=0x%08x,code=0x%08x,",(u32)transaction->target.handle,(u32)transaction->cookie,transaction->code);
 
-	tprintf("flags=0x%08x,priority=%d,data_size=%d,offsets_size=%d,data=",transaction->flags,transaction->priority,transaction->data_size,transaction->offsets_size);
-	if (transaction->flags & tfInline) {
-		dump_bytes(transaction->data.buf,8);
-	} else {
-		char* transdata;
-		size_t* offsetsdata;
-		tprintf("{buffer=0x%08x,offsets=0x%08x,*buffer=",(u32)transaction->data.ptr.buffer,(u32)transaction->data.ptr.offsets);
-		transdata=malloc(transaction->data_size);
-		if (transdata != NULL) {
-			offsetsdata=malloc(transaction->offsets_size);
-			if (offsetsdata != NULL) {
-				//if (umoven(tcp,(u32)transaction->data.ptr.buffer,1,transdata) == 0) {
-				if (umoven(tcp,(u32)transaction->data.ptr.buffer,transaction->data_size,transdata) == 0 && umoven(tcp,(u32)transaction->data.ptr.offsets,transaction->offsets_size,(char*)offsetsdata)==0) {
-					dump_transaction_contents(transdata,transaction->data_size,offsetsdata,transaction->offsets_size);
-					//dump_bytes(transdata,transaction->data_size);
-					//tprintf(",*offsets=");
-					//dump_bytes(offsetsdata,transaction->offsets_size);
-				} else
-					tprintf("[...]");
-				free(offsetsdata);
-			}
-			free(transdata);
+	tprintf("flags=0x%08x,data_size=%d,offsets_size=%d,data=",transaction->flags,transaction->data_size,transaction->offsets_size);
+	char* transdata;
+	size_t* offsetsdata;
+	tprintf("{buffer=0x%08x,offsets=0x%08x,*buffer=",(u32)transaction->data.ptr.buffer,(u32)transaction->data.ptr.offsets);
+	transdata=malloc(transaction->data_size);
+	if (transdata != NULL) {
+		offsetsdata=malloc(transaction->offsets_size);
+		if (offsetsdata != NULL) {
+			//if (umoven(tcp,(u32)transaction->data.ptr.buffer,1,transdata) == 0) {
+			if (umoven(tcp,(u32)transaction->data.ptr.buffer,transaction->data_size,transdata) == 0 && umoven(tcp,(u32)transaction->data.ptr.offsets,transaction->offsets_size,(char*)offsetsdata)==0) {
+				dump_transaction_contents(transdata,transaction->data_size,offsetsdata,transaction->offsets_size);
+				//dump_bytes(transdata,transaction->data_size);
+				//tprintf(",*offsets=");
+				//dump_bytes(offsetsdata,transaction->offsets_size);
+			} else
+				tprintf("[...]");
+			free(offsetsdata);
 		}
-		tprintf("}");
+		free(transdata);
 	}
+	tprintf("}");
 }
 
 void
@@ -261,15 +257,15 @@ unsigned long size;
 				cmd = *((u32*)location);
 				location+=sizeof(u32);
 				switch (cmd) {
-					case bcINCREFS:
+					case BC_INCREFS:
 						{
 						u32 object;
 						object = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcINCREFS,body={target=0x%08x}",object);
+						tprintf("BC_INCREFS,body={target=0x%08x}",object);
 						break;
 						}
-					case bcINCREFS_DONE:
+					case BC_INCREFS_DONE:
 						{
 						void* ptr;
 						void* cookie;
@@ -277,18 +273,18 @@ unsigned long size;
 						location+=sizeof(void*);
 						cookie = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcINCREFS_DONE,body={ptr=0x%08x,cookie=0x%08x}",(u32)ptr,(u32)cookie);
+						tprintf("BC_INCREFS_DONE,body={ptr=0x%08x,cookie=0x%08x}",(u32)ptr,(u32)cookie);
 						break;
 						}
-					case bcACQUIRE:
+					case BC_ACQUIRE:
 						{
 						u32 object;
 						object = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcACQUIRE,body={target=0x%08x}",object);
+						tprintf("BC_ACQUIRE,body={target=0x%08x}",object);
 						break;
 						}
-					case bcACQUIRE_DONE:
+					case BC_ACQUIRE_DONE:
 						{
 						void* ptr;
 						void* cookie;
@@ -296,10 +292,10 @@ unsigned long size;
 						location+=sizeof(void*);
 						cookie = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcACQUIRE_DONE,body={ptr=0x%08x,cookie=0x%08x}",(u32)ptr,(u32)cookie);
+						tprintf("BC_ACQUIRE_DONE,body={ptr=0x%08x,cookie=0x%08x}",(u32)ptr,(u32)cookie);
 						break;
 						}
-					case bcATTEMPT_ACQUIRE:
+					case BC_ATTEMPT_ACQUIRE:
 						{
 						u32 priority;
 						u32 target;
@@ -307,103 +303,71 @@ unsigned long size;
 						location+=sizeof(u32);
 						target = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcATTEMPT_ACQUIRE,body={priority=0x%08x,target=0x%08x}",priority,target);
+						tprintf("BC_ATTEMPT_ACQUIRE,body={priority=0x%08x,target=0x%08x}",priority,target);
 						break;
 						}
-					case bcACQUIRE_RESULT:
+					case BC_ACQUIRE_RESULT:
 						{
 						u32 result;
 						result = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcACQUIRE_RESULT,body={result=0x%08x}",result);
+						tprintf("BC_ACQUIRE_RESULT,body={result=0x%08x}",result);
 						break;
 						}
-					case bcRELEASE:
+					case BC_RELEASE:
 						{
 						u32 object;
 						object = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcRELEASE,body={target=0x%08x}",object);
+						tprintf("BC_RELEASE,body={target=0x%08x}",object);
 						break;
 						}
-					case bcDECREFS:
+					case BC_DECREFS:
 						{
 						u32 object;
 						object = *((u32*)location);
 						location+=sizeof(u32);
-						tprintf("bcDECREFS,body={target=0x%08x}",object);
+						tprintf("BC_DECREFS,body={target=0x%08x}",object);
 						break;
 						}
-					case bcFREE_BUFFER:
+					case BC_FREE_BUFFER:
 						{
 						void* ptr;
 						ptr = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcFREE_BUFFER,body={ptr=0x%08x}",(u32)ptr);
+						tprintf("BC_FREE_BUFFER,body={ptr=0x%08x}",(u32)ptr);
 						break;
 						}
-					case bcRETRIEVE_ROOT_OBJECT:
+					case BC_TRANSACTION:
+					case BC_REPLY:
 						{
-						u32 object;
-						object = *((u32*)location);
-						location+=sizeof(u32);
-						tprintf("bcRETRIEVE_ROOT_OBJECT,body={pid=%d}",object);
-						break;
-						}
-					case bcTRANSACTION:
-					case bcREPLY:
-						{
-						binder_transaction_data_t* transaction;
-						transaction = ((binder_transaction_data_t*)location);
-						location += sizeof(binder_transaction_data_t);
-						if (cmd == bcTRANSACTION)
-							tprintf("bcTRANSACTION,body={");
+						struct binder_transaction_data* transaction;
+						transaction = ((struct binder_transaction_data*)location);
+						location += sizeof(struct binder_transaction_data);
+						if (cmd == BC_TRANSACTION)
+							tprintf("BC_TRANSACTION,body={");
 						else
-							tprintf("bcREPLY,body={");
-						dump_transaction_data(tcp,transaction,cmd==bcTRANSACTION?true:false);
+							tprintf("BC_REPLY,body={");
+						dump_transaction_data(tcp,transaction,cmd==BC_TRANSACTION?true:false);
 						tprintf("}");
 						break;
 						}
-					case bcREGISTER_LOOPER:
+					case BC_REGISTER_LOOPER:
 						{
-						tprintf("bcREGISTER_LOOPER");
+						tprintf("BC_REGISTER_LOOPER");
 						break;
 						}
-					case bcENTER_LOOPER:
+					case BC_ENTER_LOOPER:
 						{
-						tprintf("bcENTER_LOOPER");
+						tprintf("BC_ENTER_LOOPER");
 						break;
 						}
-					case bcEXIT_LOOPER:
+					case BC_EXIT_LOOPER:
 						{
-						tprintf("bcEXIT_LOOPER");
+						tprintf("BC_EXIT_LOOPER");
 						break;
 						}
-					/*case bcCATCH_ROOT_OBJECTS:
-						{
-						tprintf("bcCATCH_ROOT_OBJECTS");
-						break;
-						}*/
-					case bcSTOP_PROCESS:
-						{
-						u32 target;
-						u32 now;
-						target = *((u32*)location);
-						location+=sizeof(u32);
-						now = *((u32*)location);
-						location+=sizeof(u32);
-						tprintf("bcSTOP_PROCESS,body={target=0x%08x,now=0x%08x}",target,now);
-						break;
-						}
-					case bcSTOP_SELF:
-						{
-						u32 now;
-						now = *((u32*)location);
-						location+=sizeof(u32);
-						tprintf("bcSTOP_SELF,body={now=0x%08x}",now);
-						break;
-						}
-					case bcREQUEST_DEATH_NOTIFICATION:
+					case BC_REQUEST_DEATH_NOTIFICATION:
 						{
 						u32 target;
 						void* cookie;
@@ -411,10 +375,10 @@ unsigned long size;
 						location+=sizeof(u32);
 						cookie = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcREQUEST_DEATH_NOTIFICATION,body={target=0x%08x,cookie=0x%08x}",target,(u32)cookie);
+						tprintf("BC_REQUEST_DEATH_NOTIFICATION,body={target=0x%08x,cookie=0x%08x}",target,(u32)cookie);
 						break;
 						}
-					case bcCLEAR_DEATH_NOTIFICATION:
+					case BC_CLEAR_DEATH_NOTIFICATION:
 						{
 						u32 target;
 						void* cookie;
@@ -422,15 +386,15 @@ unsigned long size;
 						location+=sizeof(u32);
 						cookie = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcCLEAR_DEATH_NOTIFICATION,body={target=0x%08x,cookie=0x%08x}",target,(u32)cookie);
+						tprintf("BC_CLEAR_DEATH_NOTIFICATION,body={target=0x%08x,cookie=0x%08x}",target,(u32)cookie);
 						break;
 						}
-					case bcDEAD_BINDER_DONE:
+					case BC_DEAD_BINDER_DONE:
 						{
 						void* cookie;
 						cookie = *((void**)location);
 						location+=sizeof(void*);
-						tprintf("bcDEAD_BINDER_DONE,body={cookie=0x%08x}",(u32)cookie);
+						tprintf("BC_DEAD_BINDER_DONE,body={cookie=0x%08x}",(u32)cookie);
 						break;
 						}
 					default:
@@ -470,59 +434,53 @@ unsigned long size;
 				cmd = *((u32*)location);
 				location+=sizeof(u32);
 				switch (cmd) {
-					case brERROR:
+					case BR_ERROR:
 						{
 						u32 error;
 						error = *((u32*)location);
 						location++;
-						tprintf("brERROR,body={error=%d}",error);
+						tprintf("BR_ERROR,body={error=%d}",error);
 						break;
 						}
-					case brOK:
-						tprintf("brOK");
+					case BR_OK:
+						tprintf("BR_OK");
 						break;
-					case brTIMEOUT:
-						tprintf("brTIMEOUT");
-						break;
-					case brWAKEUP:
-						tprintf("brWAKEUP");
-						break;
-					case brTRANSACTION:
-					case brREPLY:
+					case BR_TRANSACTION:
+					case BR_REPLY:
 						{
-						binder_transaction_data_t* transaction;
-						transaction = ((binder_transaction_data_t*)location);
-						location += sizeof(binder_transaction_data_t);
-						if (cmd == brTRANSACTION)
-							tprintf("brTRANSACTION,body={");
+						struct binder_transaction_data* transaction;
+						transaction = ((struct binder_transaction_data*)location);
+						location += sizeof(struct binder_transaction_data);
+						if (cmd == BR_TRANSACTION)
+							tprintf("BR_TRANSACTION,body={");
 						else
-							tprintf("brREPLY,body={");
-						dump_transaction_data(tcp,transaction,cmd==brTRANSACTION?true:false);
+							tprintf("BR_REPLY,body={");
+						dump_transaction_data(tcp,transaction,cmd==BR_TRANSACTION?true:false);
 						tprintf("}");
 						break;
 						}
-					case brACQUIRE_RESULT:
+					case BR_ACQUIRE_RESULT:
 						{
 						u32 result;
 						result = *((u32*)location);
 						location++;
-						tprintf("brACQUIRE_RESULT,body={result=%d}",result);
+						tprintf("BR_ACQUIRE_RESULT,body={result=%d}",result);
 						break;
 						}
-					case brDEAD_REPLY:
-						tprintf("brDEAD_REPLY");
+					case BR_DEAD_REPLY:
+						tprintf("BR_DEAD_REPLY");
 						break;
-					case brTRANSACTION_COMPLETE:
-						tprintf("brTRANSACTION_COMPLETE");
+					case BR_TRANSACTION_COMPLETE:
+						tprintf("BR_TRANSACTION_COMPLETE");
 						break;
-					case brINCREFS:
-					case brACQUIRE:
-					case brRELEASE:
-					case brDECREFS:
+					case BR_INCREFS:
+					case BR_ACQUIRE:
+					case BR_RELEASE:
+					case BR_DECREFS:
 						{
 						void* ptr;
 						void* cookie;
-						char* typestring = (cmd == brINCREFS) ? "brINCREFS" : (cmd == brACQUIRE) ? "brACQUIRE" : (cmd == brRELEASE) ? "brRELEASE" : "brDECREFS";
+						const char* typestring = (cmd == BR_INCREFS) ? "BR_INCREFS" : (cmd == BR_ACQUIRE) ? "BR_ACQUIRE" : (cmd == BR_RELEASE) ? "BR_RELEASE" : "BR_DECREFS";
 						ptr = *((void**)location);
 						location++;
 						cookie = *((void**)location);
@@ -530,7 +488,7 @@ unsigned long size;
 						tprintf("%s,body={ptr=0x%08x,cookie=0x%08x}",typestring,(u32)ptr,(u32)cookie);
 						break;
 						}
-					case brATTEMPT_ACQUIRE:
+					case BR_ATTEMPT_ACQUIRE:
 						{
 						u32 priority;
 						void* ptr;
@@ -541,36 +499,34 @@ unsigned long size;
 						location++;
 						cookie = *((void**)location);
 						location++;
-						tprintf("brATTEMPT_ACQUIRE,body={priority=%d,ptr=0x%08x,cookie=0x%08x}",priority,(u32)ptr,(u32)cookie);
+						tprintf("BR_ATTEMPT_ACQUIRE,body={priority=%d,ptr=0x%08x,cookie=0x%08x}",priority,(u32)ptr,(u32)cookie);
 						break;
 						}
-					case brEVENT_OCCURRED:
-						tprintf("brEVENT_OCCURRED");
+					case BR_NOOP:
+						tprintf("BR_NOOP");
 						break;
-					case brNOOP:
-						tprintf("brNOOP");
+					case BR_SPAWN_LOOPER:
+						tprintf("BR_SPAWN_LOOPER");
 						break;
-					case brSPAWN_LOOPER:
-						tprintf("brSPAWN_LOOPER");
+					case BR_FINISHED:
+						tprintf("BR_FINISHED");
 						break;
-					case brFINISHED:
-						tprintf("brFINISHED");
-						break;
-					case brDEAD_BINDER:
-					case brCLEAR_DEATH_NOTIFICATION_DONE:
+					case BR_DEAD_BINDER:
+					case BR_CLEAR_DEATH_NOTIFICATION_DONE:
 						{
-						char* typestring = (cmd == brDEAD_BINDER) ? "brDEAD_BINDER" : "brCLEAR_DEATH_NOTIFICATION_DONE";
+						const char* typestring = (cmd == BR_DEAD_BINDER) ? "BR_DEAD_BINDER" : "BR_CLEAR_DEATH_NOTIFICATION_DONE";
 						void* cookie;
 						cookie = *((void**)location);
 						location++;
 						tprintf("%s,body={cookie=0x%08x}",typestring,(u32)cookie);
 						break;
 						}
-					case brFAILED_REPLY:
-						tprintf("brFAILED_REPLY");
+					case BR_FAILED_REPLY:
+						tprintf("BR_FAILED_REPLY");
 						break;
 					default:
 						tprintf("unknown");
+						break;
 				}
 				tprintf("}");
 				if (location < data+size)
@@ -594,7 +550,7 @@ long arg;
 	switch (code) {
 	case BINDER_WRITE_READ:
 		if (exiting(tcp)) {
-			binder_write_read_t wk;
+			struct binder_write_read wk;
 			if (syserror(tcp) || umove(tcp,arg,&wk) < 0)
 				tprintf(", %#lx", arg);
 			else {
@@ -607,18 +563,7 @@ long arg;
 			}
 		}
 		break;
-	case BINDER_SET_WAKEUP_TIME:
-		if (exiting(tcp)) {
-			binder_wakeup_time_t wk;
-			if (syserror(tcp) || umove(tcp,arg,&wk) < 0)
-				tprintf(", %#lx", arg);
-			else {
-				tprintf(", {time=...,priority=%d}",wk.priority);
-			}
-		}
-		break;
 	case BINDER_SET_IDLE_TIMEOUT:
-	case BINDER_SET_REPLY_TIMEOUT:
 		tprintf(", ...");
 		break;
 	case BINDER_SET_MAX_THREADS:
@@ -645,7 +590,7 @@ long arg;
 		break;
 	case BINDER_VERSION:
 		if (exiting(tcp)) {
-			binder_version_t wk;
+			struct binder_version wk;
 			if (syserror(tcp) || umove(tcp,arg,&wk) < 0)
 				tprintf(", %#lx", arg);
 			else {
