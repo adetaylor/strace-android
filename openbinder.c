@@ -30,17 +30,14 @@
  *	$Id: time.c,v 1.19 2007/01/13 11:17:38 ldv Exp $
  */
 
+#ifdef HAVE_LINUX_BINDER_H
 #include "defs.h"
 #include <inttypes.h>
 #include <linux/types.h>
 
-#define LINUX
-
-#ifdef LINUX
 #include <linux/version.h>
 #include <linux/ioctl.h>
 #include "binder.h"
-#endif /* LINUX */
 
 #include <fcntl.h>
 #include <sys/types.h>
@@ -603,3 +600,5 @@ long arg;
 	}
 	return 1;
 }
+
+#endif

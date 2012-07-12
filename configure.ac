@@ -262,6 +262,8 @@ AC_CHECK_DECLS(m4_normalize([
 	PTRACE_SETOPTIONS
 ]),,, [#include <sys/ptrace.h>])
 
+AC_CHECK_HEADERS([linux/binder.h])
+
 AC_CHECK_DECLS(m4_normalize([
 	LO_FLAGS_AUTOCLEAR,
 	LO_FLAGS_PARTSCAN
