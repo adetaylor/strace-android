@@ -34,10 +34,12 @@
 #include <inttypes.h>
 #include <linux/types.h>
 
+#define LINUX
+
 #ifdef LINUX
 #include <linux/version.h>
 #include <linux/ioctl.h>
-#include <linux/binder_module.h>
+#include "binder.h"
 #endif /* LINUX */
 
 #include <fcntl.h>
@@ -46,18 +48,17 @@
 
 
 typedef unsigned int u32;
-typedef enum { false=0,true=1 } bool;
 
 static int logfh=0;
-static bool logfhopened = false;
+static int logfhopened = 0;
 
 void logmsg(str)
 char* str;
 {
-	if (logfhopened == false)
+	if (!logfhopened)
 	{
 		logfh = open("/dev/kmsg",O_WRONLY|O_CREAT,0666);
-		logfhopened = true;
+		logfhopened = 1;
 	}
 	if (logfh)
 	{
@@ -87,16 +88,16 @@ unsigned long size;
 	tprintf(" */");
 }
 
-bool is_within_offsets(offset,offsets,num_offsets)
+int is_within_offsets(offset,offsets,num_offsets)
 size_t offset;
 size_t* offsets;
 int num_offsets;
 {
 	int i;
-	bool found = false;
+	int found = 0;
 	for (i=0;i<num_offsets;i++) {
 		if (offsets[i] == offset)
-			found = true;
+			found = 1;
 	}
 	return found;
 }

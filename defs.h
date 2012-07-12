@@ -595,6 +595,7 @@ extern int scsi_ioctl(struct tcb *, long, long);
 extern int block_ioctl(struct tcb *, long, long);
 extern int mtd_ioctl(struct tcb *, long, long);
 extern int loop_ioctl(struct tcb *, long, long);
+extern int openbinder_ioctl(struct tcb *, long, long);
 
 extern int tv_nz(struct timeval *);
 extern int tv_cmp(struct timeval *, struct timeval *);
