@@ -27,17 +27,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- *	$Id: time.c,v 1.19 2007/01/13 11:17:38 ldv Exp $
  */
 
-#ifdef HAVE_LINUX_BINDER_H
 #include "defs.h"
+#ifdef HAVE_LINUX_BINDER_H
 #include <inttypes.h>
 #include <linux/types.h>
 
 #include <linux/version.h>
 #include <linux/ioctl.h>
-#include "binder.h"
+#include <linux/binder.h>
 
 #include <fcntl.h>
 #include <sys/types.h>
