@@ -434,7 +434,7 @@ unsigned long size;
 						{
 						u32 error;
 						error = *((u32*)location);
-						location++;
+						location+=sizeof(u32);
 						tprintf("BR_ERROR,body={error=%d}",error);
 						break;
 						}
@@ -478,9 +478,9 @@ unsigned long size;
 						void* cookie;
 						const char* typestring = (cmd == BR_INCREFS) ? "BR_INCREFS" : (cmd == BR_ACQUIRE) ? "BR_ACQUIRE" : (cmd == BR_RELEASE) ? "BR_RELEASE" : "BR_DECREFS";
 						ptr = *((void**)location);
-						location++;
+						location+=sizeof(void*);
 						cookie = *((void**)location);
-						location++;
+						location+=sizeof(void*);
 						tprintf("%s,body={ptr=0x%08x,cookie=0x%08x}",typestring,(u32)ptr,(u32)cookie);
 						break;
 						}
