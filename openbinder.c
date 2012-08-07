@@ -213,7 +213,7 @@ bool is_transaction;
 	if (is_transaction == true)
 		tprintf("target=0x%08x,cookie=0x%08x,code=0x%08x,",(u32)transaction->target.handle,(u32)transaction->cookie,transaction->code);
 
-	tprintf("flags=0x%08x,data_size=%d,offsets_size=%d,data=",transaction->flags,transaction->data_size,transaction->offsets_size);
+	tprintf("flags=0x%08x,sender_pid=%d,sender_euid=%d,data_size=%d,offsets_size=%d,data=",transaction->flags,transaction->sender_pid,transaction->sender_euid,transaction->data_size,transaction->offsets_size);
 	char* transdata;
 	size_t* offsetsdata;
 	tprintf("{buffer=0x%08x,offsets=0x%08x,*buffer=",(u32)transaction->data.ptr.buffer,(u32)transaction->data.ptr.offsets);
